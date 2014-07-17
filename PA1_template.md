@@ -49,6 +49,18 @@ str(active)
 ```r
 activeComplete <- active[complete.cases(active),]
 activeComplete$dow <- weekdays(as.Date(activeComplete$date))
+summary(activeComplete)
+```
+
+```
+##      steps               date          interval        dow           
+##  Min.   :  0.0   2012-10-02:  288   Min.   :   0   Length:15264      
+##  1st Qu.:  0.0   2012-10-03:  288   1st Qu.: 589   Class :character  
+##  Median :  0.0   2012-10-04:  288   Median :1178   Mode  :character  
+##  Mean   : 37.4   2012-10-05:  288   Mean   :1178                     
+##  3rd Qu.: 12.0   2012-10-06:  288   3rd Qu.:1766                     
+##  Max.   :806.0   2012-10-07:  288   Max.   :2355                     
+##                  (Other)   :13536
 ```
 
 
@@ -67,22 +79,26 @@ Complete cases was aggregated by date to derive 53 days of observations and summ
 - Median:  10765
 
 ## What is the average daily activity pattern?
-Is there a time series plot of the average number of steps taken (averaged across all days) versus the 5-minute intervals?
+Is there a 
 
 
 ```r
-  daily <- activeComplete[,c(1,3)]
+## time series plot of the average number of steps taken 
+## (averaged across all days) versus the 5-minute intervals
+
+daily <- activeComplete[,c(1,3)]
   pattern <- aggregate(.~ interval,data=daily, mean, na.rm=TRUE)
-  plot(pattern$interval,pattern$steps, type="l")
+  plot(pattern$interval,pattern$steps, type="l", main="Time Series of Average \n Number of Steps per Day")
 ```
 
 ![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
 
-Does the report give the 5-minute interval that, on average, contains the maximum number of steps?
 
 
 ```r
-  maxSteps <- pattern[pattern$steps > 200,]
+## 5-minute interval that, on average, contains the maximum number of steps
+
+  maxSteps <- subset(pattern, steps == max(pattern$steps))
   maxSteps
 ```
 
@@ -91,17 +107,31 @@ Does the report give the 5-minute interval that, on average, contains the maximu
 ## 104      835 206.2
 ```
 
-The average daily activity show increasing activity at Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835.  Activity fluxuates across the day, until around Interval 1900, where it declines quickly and tappers off to 0 around Interval 2400.
+The average daily activity show increasing activity at Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835 (8:30am).  Activity fluxuates across the day, until around Interval 1900 (7:00pm), where it declines quickly and tappers off after 2000 (10:00pm).
 
 
 ## Inputing missing values
 
-Where data was missing steps (NA), steps were estimated by using the mean of the corresponding interval and day of the week of records that had complete data.  A dataset of complete cases was created, along with Weekdays() function to create a 'Day-of-the-Week'column. 
+Where data was missing steps (NA), steps were estimated by using the mean of the corresponding interval and day of the week of records that had complete data.  A dataset of complete cases was created, along with Weekdays() function to create a 'Day-of-the-Week'column (dow). 
 
-The dataset was grouped by interval + dow, creating a mean of each interval by day. Missing data is replaced day by day through a loop of missing dates, by day of week.
+The dataset was grouped by interval + dow, creating a mean of each interval by day. Missing data is replaced day by day through a loop of missing dates.
 
 
 
+```r
+summary(replaceMissing)
+```
+
+```
+##      steps               date          interval        dow           
+##  Min.   :  0.0   2012-10-01:  288   Min.   :   0   Length:17568      
+##  1st Qu.:  0.0   2012-10-02:  288   1st Qu.: 589   Class :character  
+##  Median :  0.0   2012-10-03:  288   Median :1178   Mode  :character  
+##  Mean   : 37.6   2012-10-04:  288   Mean   :1178                     
+##  3rd Qu.: 19.0   2012-10-05:  288   3rd Qu.:1766                     
+##  Max.   :806.0   2012-10-06:  288   Max.   :2355                     
+##                  (Other)   :15840
+```
 The introduction of Replaced data has slightly raised the mean,   
 - from 37.3826  
 - to 37.5736
@@ -119,16 +149,26 @@ sum_steps_per_Day_after <- aggregate(.~ date, data=perDay_after,sum)
 hist(sum_steps_per_Day_after$steps, plot=TRUE, main="Histogram of Total Steps\n each Day After Missing Values are Input")
 ```
 
-![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-91.png) 
 
 ```r
 # create a factor for Weekend - Weekend or Weekday
-#activeComplete$weekend <- factor(ifelse(activeComplete$dow %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
+replaceMissing$weekend <- factor(ifelse(replaceMissing$dow %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
 
-#dayofweek <- aggregate(activeComplete$steps, 
-#                       by=list(inter=activeComplete$interval, 
-#                               we=activeComplete$weekend),
-#                       mean)
+weekend <- subset(replaceMissing, replaceMissing$weekend == "Weekend")
+weekday <- subset(replaceMissing, replaceMissing$weekend == "Weekday")
+
+
+
+weekEnd <- aggregate(weekend$steps, 
+                       by=list(inter=weekend$interval, 
+                               we=weekend$weekend),
+                       mean)
+
+weekDay <- aggregate(weekday$steps, 
+                       by=list(inter=weekday$interval, 
+                               we=weekday$weekend),
+                       mean)
 
 # arrange by day of the week starting Monday
 #dayofweek$day <- factor(dayofweek$Group.1, levels= c( "Monday", 
@@ -139,7 +179,21 @@ hist(sum_steps_per_Day_after$steps, plot=TRUE, main="Histogram of Total Steps\n 
 ## panel plot comparing the average number of steps taken per 
 ## 5-minute interval across weekdays and weekends
 
-#library(ggplot2)
-#ggplot(dayofweek, aes(day,steps)) + geom_point()
+library(ggplot2)
+p1 <- ggplot(weekEnd, aes(x=inter,y=x)) + 
+  geom_line() +
+  labs(title="Weekend Pattern of Steps",y="Steps", x="Interval")
+ 
+
+p2 <- ggplot(weekDay, aes(x=inter,y=x)) + 
+  geom_line() +
+  labs(title="Weekday Pattern of Steps", y="Steps", x="Interval")
+
+# multiplot from R Cookbook
+multiplot(p1, p2, cols=1)
 ```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-92.png) 
+
+[multiplot from R Cookbook](http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/)
 
