@@ -79,7 +79,8 @@ Complete cases was aggregated by date to derive 53 days of observations and summ
 - Median:  10765
 
 ## What is the average daily activity pattern?
-Is there a 
+
+The average daily activity shows increasing activity after Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835 (8:30am).  Activity fluxuates across the day, until around Interval 1900 (7:00pm), where it declines quickly and tappers off after 2000 (10:00pm).
 
 
 ```r
@@ -93,21 +94,13 @@ daily <- activeComplete[,c(1,3)]
 
 ![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
 
-
-
-```r
-## 5-minute interval that, on average, contains the maximum number of steps
-
-  maxSteps <- subset(pattern, steps == max(pattern$steps))
-  maxSteps
-```
+###Average Maximum number of steps
 
 ```
 ##     interval steps
 ## 104      835 206.2
 ```
 
-The average daily activity show increasing activity at Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835 (8:30am).  Activity fluxuates across the day, until around Interval 1900 (7:00pm), where it declines quickly and tappers off after 2000 (10:00pm).
 
 
 ## Inputing missing values
@@ -137,63 +130,10 @@ The introduction of Replaced data has slightly raised the mean,
 - to 37.5736
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Subject seems to "sleep-in"" during the weekends, activity doesn't ramp up until around 7:00am, but has a more active pattern during the rest of the day.
 
 
-
-```r
-## histogram of the total number of steps taken each day after missing values were 
-## imputed
-perDay_after <- replaceMissing[,1:2]
-sum_steps_per_Day_after <- aggregate(.~ date, data=perDay_after,sum)
-
-hist(sum_steps_per_Day_after$steps, plot=TRUE, main="Histogram of Total Steps\n each Day After Missing Values are Input")
-```
-
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-91.png) 
-
-```r
-# create a factor for Weekend - Weekend or Weekday
-replaceMissing$weekend <- factor(ifelse(replaceMissing$dow %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
-
-weekend <- subset(replaceMissing, replaceMissing$weekend == "Weekend")
-weekday <- subset(replaceMissing, replaceMissing$weekend == "Weekday")
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
 
-
-weekEnd <- aggregate(weekend$steps, 
-                       by=list(inter=weekend$interval, 
-                               we=weekend$weekend),
-                       mean)
-
-weekDay <- aggregate(weekday$steps, 
-                       by=list(inter=weekday$interval, 
-                               we=weekday$weekend),
-                       mean)
-
-# arrange by day of the week starting Monday
-#dayofweek$day <- factor(dayofweek$Group.1, levels= c( "Monday", 
-#    "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
-#dayofweek[order(dayofweek$day), ]
-
-
-## panel plot comparing the average number of steps taken per 
-## 5-minute interval across weekdays and weekends
-
-library(ggplot2)
-p1 <- ggplot(weekEnd, aes(x=inter,y=x)) + 
-  geom_line() +
-  labs(title="Weekend Pattern of Steps",y="Steps", x="Interval")
- 
-
-p2 <- ggplot(weekDay, aes(x=inter,y=x)) + 
-  geom_line() +
-  labs(title="Weekday Pattern of Steps", y="Steps", x="Interval")
-
-# multiplot from R Cookbook
-multiplot(p1, p2, cols=1)
-```
-
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-92.png) 
-
-[multiplot from R Cookbook](http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/)
 

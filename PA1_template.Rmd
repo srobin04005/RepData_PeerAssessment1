@@ -61,7 +61,8 @@ medSteps <- median(mSteps_per_Day$steps)
 - Median:  `r medSteps`
 
 ## What is the average daily activity pattern?
-Is there a 
+
+The average daily activity shows increasing activity after Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835 (8:30am).  Activity fluxuates across the day, until around Interval 1900 (7:00pm), where it declines quickly and tappers off after 2000 (10:00pm).
 
 ```{r}
 ## time series plot of the average number of steps taken 
@@ -73,8 +74,8 @@ daily <- activeComplete[,c(1,3)]
 
 ```
 
-
-```{r}
+###Average Maximum number of steps
+```{r echo=FALSE}
 ## 5-minute interval that, on average, contains the maximum number of steps
 
   maxSteps <- subset(pattern, steps == max(pattern$steps))
@@ -82,7 +83,6 @@ daily <- activeComplete[,c(1,3)]
 
 ```
 
-The average daily activity show increasing activity at Interval 500 (5:00am) and a sharp spike around Interval 800 (8:00am).  Maximum activity occurs at Interval 835 (8:30am).  Activity fluxuates across the day, until around Interval 1900 (7:00pm), where it declines quickly and tappers off after 2000 (10:00pm).
 
 
 ## Inputing missing values
@@ -156,104 +156,38 @@ The introduction of Replaced data has slightly raised the mean,
 - to `r meanReplaceMissing`
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Subject seems to "sleep-in"" during the weekends, activity doesn't ramp up until around 7:00am, but has a more active pattern during the rest of the day.
+
+
 ```{r echo=FALSE}
-# Multiple plot function
-# http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
 
-# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# - cols:   Number of columns in layout
-# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-#
-# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# then plot 1 will go in the upper left, 2 will go in the upper right, and
-# 3 will go all the way across the bottom.
-#
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  require(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-```
-
-```{r}
 ## histogram of the total number of steps taken each day after missing values were 
 ## imputed
-perDay_after <- replaceMissing[,1:2]
-sum_steps_per_Day_after <- aggregate(.~ date, data=perDay_after,sum)
-
-hist(sum_steps_per_Day_after$steps, plot=TRUE, main="Histogram of Total Steps\n each Day After Missing Values are Input")
-
 # create a factor for Weekend - Weekend or Weekday
-replaceMissing$weekend <- factor(ifelse(replaceMissing$dow %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
+replaceMissing$weekend <- factor(ifelse(replaceMissing$dow %in% c("Saturday", "Sunday"), "Weekend", "Weekday"), ordered = FALSE)
 
-weekend <- subset(replaceMissing, replaceMissing$weekend == "Weekend")
-weekday <- subset(replaceMissing, replaceMissing$weekend == "Weekday")
+meanWeek <- aggregate(replaceMissing$steps, 
+                                 by=list(interval=replaceMissing$interval, 
+                                         weekend=replaceMissing$weekend),  mean)
 
+#  Reorder for facet
+meanWeek$weekend2 <- factor(meanWeek$weekend, levels=c("Weekend", "Weekday"))
 
-
-weekEnd <- aggregate(weekend$steps, 
-                       by=list(inter=weekend$interval, 
-                               we=weekend$weekend),
-                       mean)
-
-weekDay <- aggregate(weekday$steps, 
-                       by=list(inter=weekday$interval, 
-                               we=weekday$weekend),
-                       mean)
-
-# arrange by day of the week starting Monday
-#dayofweek$day <- factor(dayofweek$Group.1, levels= c( "Monday", 
-#    "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
-#dayofweek[order(dayofweek$day), ]
-
-
-## panel plot comparing the average number of steps taken per 
-## 5-minute interval across weekdays and weekends
 
 library(ggplot2)
-p1 <- ggplot(weekEnd, aes(x=inter,y=x)) + 
-  geom_line() +
-  labs(title="Weekend Pattern of Steps",y="Steps", x="Interval")
- 
 
-p2 <- ggplot(weekDay, aes(x=inter,y=x)) + 
-  geom_line() +
-  labs(title="Weekday Pattern of Steps", y="Steps", x="Interval")
+ggplot(meanWeek, aes(x=interval, y=x)) + 
+  geom_line(colour="#0000FF") + 
+    facet_wrap(~weekend2, ncol=1) +
+  theme(panel.background = element_rect(fill = 'white')) +
+  theme(strip.text.x = element_text(size=8),
+        strip.text.y = element_text(size=12, face="bold"),
+        strip.background = element_rect(colour="white", fill="#FaEFEF")) +
+  ylab("Number of Steps") 
 
-# multiplot from R Cookbook
-multiplot(p1, p2, cols=1)
+
 
 ```
 
-[multiplot from R Cookbook](http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/)
+
 
